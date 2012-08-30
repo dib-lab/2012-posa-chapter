@@ -203,7 +203,7 @@ Although simple reading of the code revealed some areas which were clearly
 performance bottlenecks, we wanted to empirically identify and quantify where 
 the problem spots were. (We're scientists and so its close to second nature for
 us to want to "empirically identify and quantify" things.) Using a combination
-of readily available open source tools and internal instrumentation, we think
+of readily available open source tools and built-in instrumentation, we think
 that we got a pretty good idea of where the weakest performances were. 
 
 Tools
@@ -220,13 +220,120 @@ Examining the performance of a piece of software with independent, external
 profilers is all well and good, but how better to discover the finer details of
 your software's performance than have it tell you itself? To this end, we
 created an extensible framework to internally measure things such as
-bandwidth, iteration counts, and timings around atomic or fine-grained
+throughputs, iteration counts, and timings around atomic or fine-grained
 operations within the software itself. As a means of keeping us honest, we 
 internally collected some numbers that could be compared with measurements 
-from the profilers.
+from the external profilers.
 
 To ensure that the overhead of the manually-inserted internal instrumentation is
-not present in production code, we carefully wrapped in conditional compilation
-directives so that a build can specify to exclude it.
+not present in production code, we carefully wrapped it in conditional 
+compilation directives so that a build can specify to exclude it.
+
+Tuning
+======
+
+Making software work more efficiently is quite a gratifying experience,
+especially in the face of trillions of bytes passing through it. Our narrative
+will now wander through the various measures we took to improve efficiency. We
+divide these into two parts: optimization of the reading and parsing of 
+input data and optimization of the manipulation and writing of the Bloom 
+filter contents.
+
+Data Pump and Parser Operations
+-------------------------------
+
+Discussion of various optimizations here....
+
+Bloom Filter Operations
+-----------------------
+
+Discussion of Rose' work here....
+
+Parallelization
+===============
+
+With the proliferation of multi-core architectures in today's world, it is
+tempting to try taking advantage of them. However, unlike many other problem
+domains, such as computational fluid dynamics or molecular dynamics, our Big
+Data problem is essentially IO-bound. Beyond a certain point, throwing
+additional threads at it does not help as the bandwidth to the storage media is
+saturated and the threads simply end up with increased blocking or IO wait
+times. That said, utilizing some threads can be useful, particularly if the data
+to be processed is held in physical RAM, which generally has a much higher
+bandwidth than online storage. As part of our tuning, we took over cache
+management from the operating system so that we could efficiently make large
+blocks of data available in physical RAM. Thus, the stage was set for threads to
+work on the data without contending for limited bandwidth to the storage
+medium.
+
+Thread-safety and Threading
+---------------------------
+
+People often confuse the notion of something being thread-safe with that of
+something being threaded. As part of our parallelization work, we remodeled
+portions of the C++ core implementation to be thread-safe without making any
+assumptions about a particular threading model. Therefore, the Python
+``threading`` module can be used in the scripts which use the Python wrapper
+around the core implementation, or a C++ driver around the core could use
+a higher level abstraction, like OpenMP, or explicitly implement threading with
+``pthreads``, for example.
+
+Data Pump and Parser Operations
+-------------------------------
+
+The multi-core machines one encounters in the HPC world may have multiple memory
+controllers, where one controller is closer (in terms of signal travel
+distance) to one CPU than another CPU. These are Non-Uniform Memory Access
+(NUMA) architectures. A ramification of working with machines of this
+architecture is that memory fetch times may vary significantly depending on
+physical address. As bioinformatics software often requires a large memory
+footprint to run, it is often found running on these machines. Therefore, if one
+is using multiple threads, which may be pinned to various *NUMA nodes*, the
+locality of the physical RAM must be taken into consideration. Part of our
+performance tuning consisted of allocating segments of our data cache in a
+properly localized manner.
+
+A couple of tidbits about atomization and locking here....
+
+Also some notes on coordination between parser threads for reads which span
+cache segment boundaries....
+
+Bloom Filter Operations
+-----------------------
+
+More tidbits about atomization and locking here....
+
+Other Considerations
+====================
+
+Design Abstractions
+-------------------
+
+To aid in some of the performance tuning, we found it strongly desirable to
+refactor the design of the software's data pump and parser. Previously, the data
+pump and parser had been deeply intertwined. To improve our ability to
+accommodate new file formats, manage a data cache, and parallelize the parser,
+we broke the monolithic data pump and parser machinery into multiple pieces,
+each with a distinct interface. As a result, we are now able to support
+additional file formats without having to worry the intimate details of
+parallelization everytime.
+
+Build System
+------------
+
+Obviously, our main focus was in making the software execute more efficiently
+and hence more quickly. But, if you've ever built any considerable amount of
+software, especially the same piece of software over and over again, then you've
+probably wanted to speed up the build process as well. We certainly encountered
+such a desire and will briefly discuss the work enable successful parallel
+builds of our software.
+
+Future Directions
+=================
+
+Further performance tuning can be done on this software. Some of this tuning is
+fairly low-hanging fruit, which simply needs to yet be plucked. But, other
+portions of this tuning wander into the territory of being research problems. We
+briefly discuss both kinds of tuning and the additional impacts we hope to see.
 
 .. vim: set ft=rst sw=3 sts=3 tw=80:
