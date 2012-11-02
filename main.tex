@@ -202,6 +202,8 @@ c &= 0xdf; // quicker toupper
 
 The above has one bitwise operation, no compares, and no branches. Uppercase letters pass through unmolested; lowercase letters become uppercase. Perfect, just we wanted. For our trouble, we gained about a 13\% speedup.
 
+% TODO: Mention hash caching stuff which Rose started to play with.
+
 \section{Parallelization}
 
 With the proliferation of multi-core architectures in today's world, it is tempting to try taking advantage of them. However, unlike many other problem domains, such as computational fluid dynamics or molecular dynamics, our Big Data problem is essentially I/O-bound. Beyond a certain point, throwing additional threads at it does not help as the bandwidth to the storage media is saturated and the threads simply end up with increased blocking or I/O wait times. That said, utilizing some threads can be useful, particularly if the data to be processed is held in physical RAM, which generally has a much higher bandwidth than online storage. As discussed previously, we have implemented a prefetch buffer in conjunction with direct input. Multiple threads can use this buffer; more will be said about this below. I/O bandwidth is not the only finite resource which multiple threads must share. The hash tables used for k-mer counting are another one. Shared access to these will also be discussed below.
