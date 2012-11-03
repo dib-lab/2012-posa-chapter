@@ -1,6 +1,8 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 
+\newcommand{\comment}[2]{#2}
+
 \title{khmer: Working with Big Data in Bioinformatics}
 \author{Eric McDonald and C. Titus Brown}
 \date{October 2012}
@@ -17,36 +19,38 @@
 
 \subsection{Bioinformatics and Big Data}
 
+% RCK - These first two paragraphs seem a bit too detailed for an introduction. Either prune them, or remove entirely, putting the information elsewhere in the text as required.
 The field of bioinformatics seeks to understand the mechanisms which sustain and perpetuate life on Earth by examining information about the combination and function of the molecules associated with these activities. The combinations and functions of these molecules are examined at different scales, the most common being nucleotides (the smallest) and proteins. A chemical and mechanical process, known as sequencing, extracts nucleotide sequences from the DNA and RNA present in terrestrial life. These sequences are recorded using an \textit{alphabet} of one letter per molecule. Various analyses are performed on this sequence data to determine how it is structured into larger building blocks and how it relates to other sequence data. This serves as the basis for the study of biological evolution and development, genetics, and, increasingly, medicine.
 
 Data on nucleotide chains comes from the sequencing process in named strings of letters known as \textit{reads}. (The use of the term \textit{read} in the bioinformatic sense is an unfortunate collision with the use of the term in the computer science and software engineering sense. This is especially true as the performance of reading reads can be tuned, as we will discuss. We will try to disambiguate this unfortunate collision as much as we can in this chapter by referring to sequences from genomes as \textit{genomic reads}.) To analyze larger scale structures and processes, the nucleotide sequences of multiple genomic reads must be fit together. This fitting is different than a jigsaw puzzle in that the picture is often not known a priori and that the pieces may (and often do) overlap one another. A further complication is introduced in that not all genomic reads are of perfect fidelity and may contain a variety of errors, such as insertions or deletions of nucleotides or representations of nucleotides with the wrong letters. While having redundant reads can help in the assembly or fitting of the puzzle pieces, it is also a hindrance because the various sequencing techniques all have a certain probability for producing errors and this means that the number of errors scales with the volume of data.
 
 % TODO? Add citation for Big Data problem.
 
+% RCK - Move this paragraph to the beginning of the introduction to act as a hook. You can add some detail about what the heck bioinformatics is after this.
 As sequencing technology has improved, the volume of sequence data being produced has begun to exceed the capabilities of computer hardware employing conventional methods for analyzing such data. This trend is expected to continue and is part of what is known as the \textit{Big Data} problem in the high performance computing (HPC) and analytics communities. With hardware becoming a limiting factor, increasing attention has turned to ways to mitigate the problem with software solutions. In this chapter, we present one such software solution and how we tuned and scaled it to handle terabytes of data.
 
 \subsection{What is the khmer Software?}
 
-Khmer, in addition to being an ethnic group indigenous to Southeast Asia, is the name of our suite of software tools \citep{web:khmer} for preprocessing large amounts of genomic sequence data prior to its analysis with conventional tools. As part of the preprocessing the software performs, sequences are decomposed into overlapping substrings of a given length, \textit{k}. As chains of many molecules are often called \textit{polymers}, chains of a specific number of molecules are called \textit{k-mers} in bioinformatics, each substring representing one such chain. (The hyphen between ``k'' and ``mer'' is a frequent convention and perhaps the ``h'' in the name of the software represents this.)
+Khmer, in addition to being an ethnic group indigenous to Southeast Asia, is the name of our suite of software tools \citep{web:khmer} for pre-processing large amounts of genomic sequence data prior to its analysis with conventional bioinformatics tools. As part of the pre-processing the software performs, genetic sequences are decomposed into overlapping substrings of a given length, \textit{k}. As chains of many molecules are often called \textit{polymers}, chains of a specific number of molecules are called \textit{k-mers}, each substring representing one such chain. 
 
 % TODO: Insert figure showing a small read decomposed into k-mers.
 
 % TODO? Add citation for Bloom filter.
 % TODO: Add citations for diginorm and partitioning papers.
 
-Since we want to tell you about how we measured and tuned this piece of open source software, we'll skip over much of the theory behind it. Suffice it to say that k-mer counting is central to much of its operation. To compactly count a large number of k-mers, a data structure known as a \textit{Bloom filter} is used. Armed with k-mer counts, we can then exclude highly redundant data from further processing. And, we can also treat low abundance sequence data as probable errors and exclude it from further processing as well. We call such exclusion or filtering \textit{digital normalization} and it is one of the major innovations that this software has lent to bioinformatics processing. This normalization process greatly reduces the amount of raw sequence data needed for further analysis, while mostly preserving information of interest.
+Since we want to tell you about how we measured and tuned this piece of open source software, we'll skip over much of the theory behind it. Suffice it to say that k-mer counting\comment{Elaborate?} is central to much of its operation. To compactly count a large number of k-mers, a data structure known as a \textit{Bloom filter} is used.\comment{briefly explain bloom filters} Armed with k-mer counts, we can then exclude highly redundant data from further processing. And, we can also treat low abundance sequence data as probable errors and exclude them from further processing as well. We call such exclusion or filtering \textit{digital normalization} and it is one of the major innovations that this software has lent to bioinformatics processing. This normalization process greatly reduces the amount of raw sequence data needed for further analysis, while mostly preserving information of interest.
 
 For the curious, the khmer sources and documentation can be cloned from GitHub at \url{http://github.com/ged-lab/khmer.git}.
 
 \section{Architecture and Performance Considerations}
 
-Like so many pieces of software in the scientific community, khmer mostly started as an exploratory programming exercise and evolved into more mature research code over time. From its inception, the focus has been on solving particular scientific problems with as much as accuracy or ``correctness'' as possible. Over time, as the software has come into greater use around the world, issues such as packaging, performance, and scalability have become more prominent. These issues were not necessarily neglected in earlier times, but they now have a higher profile than they once did. Our discussion will center around what we have now done regarding the analysis and solution of performance issues and tackling the scalability challenge. One thing to keep in mind is that khmer is research code still under development, receiving new features and having a growing collection of scripts built up around it. Changes made to improve performance or scalability must be careful not to break existing interfaces or to cause the software not to meet its expected level or accuracy or correctness. For this reason, we have proceeded along a strategy of careful, incremental optimization and parallelization. In conjunction with other activities pertaining to the software, this process is essentially perpetual.
+Like so many pieces of software in the scientific community, khmer mostly started as an exploratory programming exercise and evolved into more mature research code over time. From its inception, the focus has been on solving particular scientific problems with as much as accuracy or ``correctness'' as possible. Over time, as the software has come into greater use around the world, issues such as packaging, performance, and scalability have become more prominent. These issues were not necessarily neglected in earlier times, but they now have a higher profile than they once did. Our discussion will center around what we have now done regarding the analysis and solution of performance issues and tackling the scalability challenge. One thing to keep in mind is that khmer is research code still under development, receiving new features and having a growing collection of scripts built up around it. \comment{Rework passive voice.} Changes made to improve performance or scalability must be careful not to break existing interfaces or to cause the software not to meet its expected level or accuracy or correctness. For this reason, we have proceeded along a strategy of careful, incremental optimization and parallelization. In conjunction with other activities pertaining to the software, this process is essentially perpetual.\comment{This is good. It is important to emphasize what kind of software life-stage optimization should be happening in. That is, maintenance.}
 
 % TODO: Insert figure showing layered software stack with C++ core outward to Python scripts.
 
 The core of the software is written in C++. This core consists a data pump, parsers for genomic reads in several common formats, and several k-mer counters. An \textit{application programming interface} (API) is built around the core. This API can, of course, be used from C++ programs, as we do with some of our test drivers, but also serves as the foundation for a Python wrapper. A Python package is built upon the Python wrapper. Numerous Python scripts are distributed along with the package. Thus, the khmer software, in its totality, is the combination of core components, written in C++ for speed, higher-level interfaces, exposed via Python for ease of manipulation, and an assortment of tool scripts, which provide convenient ways to perform the various tasks for which the software was designed.
 
-The khmer software is designed to support operation in multiple phases, each with separate data inputs and outputs. For example, it can take a set of genomic reads, count k-mers in these, and then optionally save the Bloom filter hash tables for later use. Later, it can use saved hash tables to perform k-mer abundance filtering on a new set of genomic reads, saving the filtered data. This flexibility to reuse earlier outputs and to decide what to keep allows a user to tailor a use pattern specific to his or her needs and storage constraints.
+The khmer software is designed to support batch operation in multiple phases, each with separate data inputs and outputs. For example, it can take a set of genomic reads, count k-mers in these, and then optionally save the Bloom filter hash tables for later use. Later, it can use saved hash tables to perform k-mer abundance filtering on a new set of genomic reads, saving the filtered data. This flexibility to reuse earlier outputs and to decide what to keep allows a user to tailor a use pattern specific to their needs and storage constraints.
 
 \begin{figure}[ht!]
 \centering
@@ -55,7 +59,7 @@ The khmer software is designed to support operation in multiple phases, each wit
 \label{khmerDataFlow}
 \end{figure}
 
-Lots and lots of data (potentially terabytes) must be moved from disk to memory by the software. Having an efficient data pump is crucial, as the input throughput from storage may be 3 or even 4 orders of magnitude less than the throughput for data transfer involving RAM. For some kinds of data files, a decompressor must be used. In either case, a parser must be able to work efficiently with the resultant data. The parsing task revolves around variable-length lines, but also must account for invalid reads (in the genomic sense) and what are known as paired reads. Each genomic read is broken up into a set of overlapping k-mers and each k-mer is registered with or compared against the Bloom filter. If a previously stored Bloom filter is being updated or used for comparison, then that must be loaded from storage. If a Bloom filter is being created for later use or updated, then it must be saved to storage.
+Lots and lots of data (potentially terabytes) must be moved from disk to memory by the software. Having an efficient data pump is crucial, as the input throughput from storage may be 3 or even 4 orders of magnitude less than the throughput for data transfer involving RAM. For some kinds of data files, a decompressor must be used. In either case, a parser must be able to work efficiently with the resultant data. The parsing task revolves around variable-length lines, but also must account for invalid genomic reads and what are known as paired reads. Each genomic read is broken up into a set of overlapping k-mers and each k-mer is registered with or compared against the Bloom filter. If a previously stored Bloom filter is being updated or used for comparison, then it must be loaded from storage. If a Bloom filter is being created for later use or updated, then it must be saved to storage.\comment{Refer explicitly to the figure.}
 
 The data pump always performs sequential access on files and can potentially be asked to read large chunks of data at one time. With this in mind, the following are some of the questions which come to mind:
 \begin{itemize}
@@ -66,6 +70,7 @@ The data pump always performs sequential access on files and can potentially be 
 \item Does the data pump expose data to the parser in a manner that does create any unnecessary accessor or decision logic overhead?
 \end{itemize}
 
+%RCK - These bits here are the main issues at hand. Consider moving this list (and perhaps the one above) up to the beginning of the Architecture section, perhaps as an introductory teaser to give the reader an idea of what they should be paying attention to. Consider the following pattern: Express the problem; Describe the specifics involved; Explain how the problem was addressed, bullet by bullet.
 Some considerations, regarding parser efficiency, are:
 \begin{itemize}
 \item Have we minimized the number of times that the parser is touching the data in memory?
@@ -81,6 +86,8 @@ For iterating over the k-mers in a genomic read and hashing them, we could ask:
 \item Have we minimized the number of times that the hasher is touching the data in memory?
 \item Can we increment hash counts in batches to exploit a warm cache?
 \end{itemize}
+
+%RCK - This whole section seems to be covering too much ground and too shallowly. You should narrow the focus onto a couple of the primary issues and then cover them in depth.
 
 \section{Profiling and Measurement}
 
