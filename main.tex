@@ -31,7 +31,12 @@ As sequencing technology has improved, the volume of sequence data being produce
 
 Khmer, in addition to being an ethnic group indigenous to Southeast Asia, is the name of our suite of software tools \citep{web:khmer} for pre-processing large amounts of genomic sequence data prior to its analysis with conventional bioinformatics tools. As part of the pre-processing the software performs, genetic sequences are decomposed into overlapping substrings of a given length, \textit{k}. As chains of many molecules are often called \textit{polymers}, chains of a specific number of molecules are called \textit{k-mers}, each substring representing one such chain. 
 
-% TODO: Insert figure showing a small read decomposed into k-mers.
+\begin{figure}[ht!]
+\centering
+\includegraphics[scale=0.5]{kmers.eps}
+\caption{Decomposition of Genomic Sequence into 4-mers}
+\label{kmers}
+\end{figure}
 
 % TODO: Add citations for diginorm and partitioning papers.
 
@@ -43,7 +48,12 @@ For the curious, the khmer sources and documentation can be cloned from GitHub a
 
 Like so many pieces of software in the scientific community, khmer mostly started as an exploratory programming exercise and evolved into more mature research code over time. From its inception, the focus has been on solving particular scientific problems with as much as accuracy or ``correctness'' as possible. Over time, as the software has come into greater use around the world, issues such as packaging, performance, and scalability have become more prominent. These issues were not necessarily neglected in earlier times, but they now have a higher profile than they once did. Our discussion will center around what we have now done regarding the analysis and solution of performance issues and tackling the scalability challenge. One thing to keep in mind is that khmer is research code still under development, receiving new features and having a growing collection of scripts built up around it. Changes made to improve performance or scalability must be careful not to break existing interfaces or to cause the software not to meet its expected level or accuracy or correctness. For this reason, we have proceeded along a strategy of careful, incremental optimization and parallelization. In conjunction with other activities pertaining to the software, this process is essentially perpetual.
 
-% TODO: Insert figure showing layered software stack with C++ core outward to Python scripts.
+\begin{figure}[ht!]
+\centering
+\includegraphics[scale=0.6]{layers.eps}
+\caption{A Layered View of the khmer Software}
+\label{khmerLayers}
+\end{figure}
 
 The core of the software is written in C++. This core consists a data pump, parsers for genomic reads in several common formats, and several k-mer counters. An \textit{application programming interface} (API) is built around the core. This API can, of course, be used from C++ programs, as we do with some of our test drivers, but also serves as the foundation for a Python wrapper. A Python package is built upon the Python wrapper. Numerous Python scripts are distributed along with the package. Thus, the khmer software, in its totality, is the combination of core components, written in C++ for speed, higher-level interfaces, exposed via Python for ease of manipulation, and an assortment of tool scripts, which provide convenient ways to perform the various tasks for which the software was designed.
 
