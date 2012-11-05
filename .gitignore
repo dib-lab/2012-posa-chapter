@@ -1,7 +1,10 @@
+*.swp
 *.out
 *.aux
 *.log
 *.dvi
+*.bbl
+*.blg
 *.pdf
 outline.tex
 *~
