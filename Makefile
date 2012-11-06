@@ -1,4 +1,4 @@
-ifeq ($(shell which convert),)
+ifeq ($(shell which convert 2>/dev/null),)
 CONVERT = echo
 else
 CONVERT = convert
