@@ -121,17 +121,18 @@ activities pertaining to the software, this process is essentially perpetual.
 \label{khmerLayers}
 \end{figure}
 
-The core of the software is written in C++. This core consists a data pump,
-parsers for genomic reads in several common formats, and several k-mer
-counters. An \textit{application programming interface} (API) is built around
-the core. This API can, of course, be used from C++ programs, as we do with
-some of our test drivers, but also serves as the foundation for a Python
-wrapper. A Python package is built upon the Python wrapper. Numerous Python
-scripts are distributed along with the package. Thus, the khmer software, in
-its totality, is the combination of core components, written in C++ for speed,
-higher-level interfaces, exposed via Python for ease of manipulation, and an
-assortment of tool scripts, which provide convenient ways to perform the
-various tasks for which the software was designed.
+The core of the software is written in C++. This core consists a data pump (the
+component which moves data from online storage into physical RAM), parsers for
+genomic reads in several common formats, and several k-mer counters. An
+\textit{application programming interface} (API) is built around the core. This
+API can, of course, be used from C++ programs, as we do with some of our test
+drivers, but also serves as the foundation for a Python wrapper. A Python
+package is built upon the Python wrapper. Numerous Python scripts are
+distributed along with the package. Thus, the khmer software, in its totality,
+is the combination of core components, written in C++ for speed, higher-level
+interfaces, exposed via Python for ease of manipulation, and an assortment of
+tool scripts, which provide convenient ways to perform the various tasks for
+which the software was designed.
 
 The khmer software is designed to support batch operation in multiple phases,
 each with separate data inputs and outputs. For example, it can take a set of
@@ -139,7 +140,7 @@ genomic reads, count k-mers in these, and then optionally save the Bloom filter
 hash tables for later use. Later, it can use saved hash tables to perform k-mer
 abundance filtering on a new set of genomic reads, saving the filtered data.
 This flexibility to reuse earlier outputs and to decide what to keep allows a
-user to tailor a use pattern specific to their needs and storage constraints.
+user to tailor a use pattern specific to his/her needs and storage constraints.
 
 \begin{figure}[ht!]
 \centering
@@ -430,30 +431,30 @@ discuss the thread-safety aspects of this design in more detail later. For now,
 we will focus upon the reduction of memory-to-memory copies and the ability to
 perform fairly aggressive prefetching of data.
 
-Typically, when a program retrieves data from a block storage device, a certain
-number of the blocks are cached by the operating system, in case the blocks are
-needed again. There is some time overhead associated with this caching
-activity; also, the amount of data to prefetch into the cache cannot be finely
-tuned. Furthermore, the cache cannot be accessed directly by a user process and
-so must be copied from the cache into the address space of the user process.
-This is a memory-to-memory copy. 
+Typically, when a program retrieves data from a block storage device (e.g., a
+hard disk), a certain number of the blocks are cached by the operating system,
+in case the blocks are needed again. There is some time overhead associated
+with this caching activity; also, the amount of data to prefetch into the cache
+cannot be finely tuned. Furthermore, the cache cannot be accessed directly by a
+user process and so must be copied from the cache into the address space of the
+user process.  This is a memory-to-memory copy. 
 
 Some operating systems, such as Linux, allow for their readahead windows to be
 tuned some. One can make calls to \texttt{posix\_fadvise(2)} and
 \texttt{readahead(2)} for a particular file descriptor, for example. However,
 these allow rather limited control and do not bypass caching. We are interested
 in bypassing the cache maintained by the OS. This cache actually can be
-bypassed if a file is opened with the \texttt{O\_DIRECT} flag. Using direct
-input is not entirely straightforward, as the reads from storage must be
-multiples of the storage medium's block size and must be placed into memory,
-which is address-aligned on a multiple of that same block size. This requires a
-program to perform housekeeping which a file system would normally do. We
-implemented direct input, including the necessary housekeeping. There are,
-however, some cases where direct input will not work or is otherwise
-undesirable. For those cases, we still attempt to tune the readahead window.
-Our access of storage is sequential and we can tell the operating system to
-read further ahead than it normally would by using \texttt{posix\_fadvise(2)}
-to provide a hint.
+bypassed if a file is opened with the \texttt{O\_DIRECT} flag and the file
+system supports it. Using direct input is not entirely straightforward, as the
+reads from storage must be multiples of the storage medium's block size and
+must be placed into an area of memory, which has a base address that is a
+multiple of the same block size. This requires a program to perform
+housekeeping which a file system would normally do. We implemented direct
+input, including the necessary housekeeping. There are, however, some cases
+where direct input will not work or is otherwise undesirable. For those cases,
+we still attempt to tune the readahead window.  Our access of storage is
+sequential and we can tell the operating system to read further ahead than it
+normally would by using \texttt{posix\_fadvise(2)} to provide a hint.
 
 Minimizing buffer-to-buffer copies is a challenge shared between the data pump
 and the parser. In the ideal scenario, we would like to read once from storage
@@ -646,13 +647,13 @@ ultimately interested in improving performance here too. One possibility is to
 amortize the cost of the write-out over the duration of the k-mer counting
 phase of operation. The URL-shortener site, bit.ly, has a counting Bloom filter
 implementation, called \texttt{dablooms} \citep{web:dablooms}, which achieves
-this by memory-mapping its output file to the hash table memory.  Adopting
-their idea, in conjunction with batch updates of the hash tables, would
-effectively give us asynchronous output in bursts over a process' lifetime and
-chop off the entire write-out time from the end of execution. Our output is not
-simply tables of counts, however, but also includes a header with some
-metadata; implementing memory-mapping in light of this fact is an endeavor that
-needs to be approached thoughtfully and carefully.
+this by memory-mapping its output file to the hash table memory. Adopting their
+idea, in conjunction with batch updates of the hash tables, would effectively
+give us asynchronous output in bursts over a process' lifetime and chop off the
+entire write-out time from the end of execution. Our output is not simply
+tables of counts, however, but also includes a header with some metadata;
+implementing memory-mapping in light of this fact is an endeavor that needs to
+be approached thoughtfully and carefully.
 
 \subsection{Scaling}
 
@@ -668,7 +669,9 @@ overhead, constitutes a serial portion of the software's execution. I/O can be
 made to scale somewhat via asynchronous reads and writes, but its bandwidth is
 ultimately finite and saturation will eventually be reached.
 
-% TODO? Plot speedup curve.
+% TODO: Plot speedup curve.
+
+% TODO: Briefly discuss various storage media used per suggestion from Tavish.
 
 \section{Conclusion}
 
