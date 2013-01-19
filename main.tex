@@ -659,19 +659,34 @@ be approached thoughtfully and carefully.
 
 Was making the khmer software scalable worth our effort? Yes. Of course, we did
 not achieve perfectly linear speedup. But, for every doubling of the number of
-cores, we presently get about a factor of 1.9 speedup. We think that we can do
-even better by improving our access patterns around shared resources, such as
-the hash table memory, and by better streamlining the use of per-thread state
-objects. At some point, though, if we improve per-thread efficiency enough and
-improve the scaling factor enough, Amdahl's Law \citep{web:Amdahl} will rear
-its head. This is to say that I/O, plus some initialization and bookkeeping
-overhead, constitutes a serial portion of the software's execution. I/O can be
-made to scale somewhat via asynchronous reads and writes, but its bandwidth is
-ultimately finite and saturation will eventually be reached.
+cores, we presently get about a factor of 1.9 speedup.
 
-% TODO: Plot speedup curve.
+\begin{figure}[ht!]
+\centering
+\includegraphics[scale=0.8]{scaling.pdf}
+\caption{Speedup Factor from 1 to 8 CPU Cores}
+\label{khmerScaling}
+\end{figure}
 
-% TODO: Briefly discuss various storage media used per suggestion from Tavish.
+In parallel computing, one must be mindful of Amdahl's Law \citep{web:Amdahl}
+and the Law of Diminishing Returns. The common forumulation of Amdahl's Law, in
+the context of parallel computing, is $S(N) = \frac{1}{(1 - P) + \frac{P}{N}}$,
+where $S$ is the speedup achieved given $N$ CPU cores and, $P$, the proportion
+of the code which is parallelized.  For $\lim_{N\to\infty} S = \frac{1}{(1 -
+P)}$, a constant.  The I/O bandwidth of the storage system, which the software
+utilizes, is finite and non-scalable; this contributes to a non-zero $(1 - P)$.
+Moreover, contention for shared resources in the parallelized portion means
+that $\frac{P}{N}$ is, in reality, $\frac{P}{N^l}$, where $l < 1$ versus the
+ideal case of $l = 1$.  Therefore, returns will diminish over a finite number
+of cores even more rapidly.
+
+Using faster storage systems, such as solid-state drives (SSDs) as opposed to
+hard-disk drives (HDDs), increases I/O bandwidth (and thus reduces $(1 - P)$),
+but that is beyond the purview of software. While we cannot do much about
+hardware, we can still try to improve $l$. We think that we can further improve
+our access patterns around shared resources, such as the hash table memory, and
+that we can better streamline the use of per-thread state objects. Doing these
+two things will likely grant us an improvement to $l$.
 
 \section{Conclusion}
 
