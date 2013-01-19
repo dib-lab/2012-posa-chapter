@@ -17,15 +17,15 @@
 
 \subsection{Bioinformatics and Big Data}
 
-The field of bioinformatics seeks to understand the mechanisms which sustain 
-and perpetuate life on Earth by examining information about the combination and
-function of the molecules associated with these activities. The combinations
-and functions of these molecules are examined at different scales, the most
-common being nucleotides (the smallest) and proteins. A chemical and mechanical
+The field of bioinformatics seeks to understand the mechanisms that sustain and
+perpetuate life on Earth by examining information about the combination and
+function of molecules associated with these activities. The combinations and
+functions of these molecules are examined at different scales, the most common
+being nucleotides (the smallest) and proteins. A chemical and mechanical
 process, known as sequencing, extracts nucleotide sequences from the DNA and
 RNA present in terrestrial life. These sequences are recorded using an
-\textit{alphabet} of one letter per molecule. Various analyses are performed on
-this sequence data to determine how it is structured into larger building
+\textit{alphabet} of one letter per nucleotide. Various analyses are performed
+on this sequence data to determine how it is structured into larger building
 blocks and how it relates to other sequence data. This serves as the basis for
 the study of biological evolution and development, genetics, and, increasingly,
 medicine.
@@ -34,19 +34,22 @@ Data on nucleotide chains comes from the sequencing process in named strings of
 letters known as \textit{reads}. (The use of the term \textit{read} in the
 bioinformatics sense is an unfortunate collision with the use of the term in
 the computer science and software engineering sense. This is especially true as
-the performance of reading reads can be tuned, as we will discuss. We will try
-to disambiguate this unfortunate collision as much as we can in this chapter by
-referring to sequences from genomes as \textit{genomic reads}.) To analyze
-larger scale structures and processes, the nucleotide sequences of multiple
-genomic reads must be fit together. This fitting is different than a jigsaw
-puzzle in that the picture is often not known a priori and that the pieces may
-(and often do) overlap one another. A further complication is introduced in
+the performance of reading reads can be tuned, as we will discuss. To
+disambiguate this unfortunate collision we refer to sequences from genomes as
+\textit{genomic reads}.) To analyze larger scale structures and processes,
+multiple genomic reads must be fit together. This fitting is different than a
+jigsaw puzzle in that the picture is often not known \textit{a priori} and that
+the pieces may (and often do) overlap. A further complication is introduced in
 that not all genomic reads are of perfect fidelity and may contain a variety of
-errors, such as insertions or deletions of nucleotides or representations of
-nucleotides with the wrong letters. While having redundant reads can help in
-the assembly or fitting of the puzzle pieces, it is also a hindrance because
-the various sequencing techniques all have a certain probability for producing
-errors and this means that the number of errors scales with the volume of data.
+errors, such as insertions or deletions of letters or substitutions of the
+wrong letters for nucleotides. While having redundant reads can help in the
+assembly or fitting of the puzzle pieces, it is also a hindrance because of
+this imperfect fidelity in all of the extant sequencing technologies. The
+appearance of erroneous reads scales with the volume of data and this
+complicates assembly of the genomic reads.
+
+% TODO: Reference NIH study with info on sequencing cost and Moore's Law.
+%	(Suggested by Alexis.)
 
 As sequencing technology has improved, the volume of sequence data being
 produced has begun to exceed the capabilities of computer hardware employing
@@ -62,12 +65,12 @@ tuned and scaled it to handle terabytes of data.
 
 Khmer, in addition to being an ethnic group indigenous to Southeast Asia, is
 the name of our suite of software tools \citep{web:khmer} for pre-processing
-large amounts of genomic sequence data prior to its analysis with conventional
-bioinformatics tools. As part of the pre-processing the software performs,
-genetic sequences are decomposed into overlapping substrings of a given length,
-\textit{k}. As chains of many molecules are often called \textit{polymers},
-chains of a specific number of molecules are called \textit{k-mers}, each
-substring representing one such chain. 
+large amounts of genomic sequence data prior to analysis with conventional
+bioinformatics tools. As part of the pre-processing, genetic sequences are
+decomposed into overlapping substrings of a given length, \textit{k}. As chains
+of many molecules are often called \textit{polymers}, chains of a specific
+number of molecules are called \textit{k-mers}, each substring representing one
+such chain. 
 
 \begin{figure}[ht!]
 \centering
@@ -131,16 +134,16 @@ package is built upon the Python wrapper. Numerous Python scripts are
 distributed along with the package. Thus, the khmer software, in its totality,
 is the combination of core components, written in C++ for speed, higher-level
 interfaces, exposed via Python for ease of manipulation, and an assortment of
-tool scripts, which provide convenient ways to perform the various tasks for
-which the software was designed.
+tool scripts, which provide convenient ways to perform various bioinformatics
+tasks.
 
-The khmer software is designed to support batch operation in multiple phases,
-each with separate data inputs and outputs. For example, it can take a set of
-genomic reads, count k-mers in these, and then optionally save the Bloom filter
-hash tables for later use. Later, it can use saved hash tables to perform k-mer
+The khmer software supports batch operation in multiple phases, each with
+separate data inputs and outputs. For example, it can take a set of genomic
+reads, count k-mers in these, and then, optionally, save the Bloom filter hash
+tables for later use. Later, it can use saved hash tables to perform k-mer
 abundance filtering on a new set of genomic reads, saving the filtered data.
 This flexibility to reuse earlier outputs and to decide what to keep allows a
-user to tailor a use pattern specific to his/her needs and storage constraints.
+user to tailor a procedure specific to his/her needs and storage constraints.
 
 \begin{figure}[ht!]
 \centering
@@ -151,16 +154,18 @@ user to tailor a use pattern specific to his/her needs and storage constraints.
 
 Lots and lots of data (potentially terabytes) must be moved from disk to memory
 by the software. Having an efficient data pump is crucial, as the input
-throughput from storage may be 3 or even 4 orders of magnitude less than the
-throughput for data transfer involving RAM. For some kinds of data files, a
-decompressor must be used. In either case, a parser must be able to work
+throughput from storage to CPU may be 3 or even 4 orders of magnitude less than
+the throughput for data transfer from physical RAM to CPU. For some kinds of
+data files, a decompressor must be used. In either case, a parser must work
 efficiently with the resultant data. The parsing task revolves around
-variable-length lines, but also must account for invalid genomic reads and what
-are known as paired reads. Each genomic read is broken up into a set of
-overlapping k-mers and each k-mer is registered with or compared against the
-Bloom filter. If a previously stored Bloom filter is being updated or used for
-comparison, then it must be loaded from storage. If a Bloom filter is being
-created for later use or updated, then it must be saved to storage.
+variable-length lines, but also must account for invalid genomic reads and
+preserving certain pieces of biological information, which may be exploited
+during later assembly, such as pairings of the ends of sequence fragments. Each
+genomic read is broken up into a set of overlapping k-mers and each k-mer is
+registered with or compared against the Bloom filter.  If a previously stored
+Bloom filter is being updated or used for comparison, then it must be loaded
+from storage.  If a Bloom filter is being created for later use or updated,
+then it must be saved to storage.
 
 The data pump always performs sequential access on files and can potentially be
 asked to read large chunks of data at one time. With this in mind, the
@@ -173,7 +178,7 @@ latency?
 \item Can we efficiently bypass system caches to reduce buffer-to-buffer copies
 in memory?
 \item Does the data pump expose data to the parser in a manner that
-does create any unnecessary accessor or decision logic overhead?
+does not create any unnecessary accessor or decision logic overhead?
 \end{itemize}
 
 Some considerations, regarding parser efficiency, are:
@@ -207,8 +212,8 @@ fine granularity view of key performance metrics.
 \subsection{Code Review}
 
 Blindly applying tools to measure a system (software or otherwise) is rarely a
-good idea. Attempting to gain some understanding of the system before measuring
-it is usually a good idea. To this end, we reviewed the code by eye first.
+good idea. Rather, it is generally a good idea to gain some understanding of
+the system before measuring it. To this end, we reviewed the code by eye first.
 
 Manually tracing the execution paths of an unfamiliar code is a good idea.
 (One of the authors, Eric McDonald, was new to the khmer software at the time
@@ -268,10 +273,10 @@ faster than profiled code, and, for $k = 30$, that non-profiled code ran about
 The GNU Profiler, gprof \citep{web:gprof}, is one of the tools which we used.
 This profiler relies upon a compiler to instrument the source code and a linker
 to link in some additional profiler-support logic, as appropriate. The
-\texttt{-pg} flag is used to enable profiling when using the GNU toolchain;
-other toolchains, such as those provided by Intel or PGI, also have switches
-for enabling gprof-compatible profiling. (Some compiler vendors in the Unix
-world also supply their own profiling tools and provide switches for supporting
+\texttt{-pg} flag enables profiling when using the GNU toolchain; other
+toolchains, such as those provided by Intel or PGI, also have switches for
+enabling gprof-compatible profiling. (Some compiler vendors in the Unix world
+also supply their own profiling tools and provide switches for supporting
 those, in addition to the gprof "standard".) When the compiled code is
 executed, it accumulates data about how much time is spent in particular
 functions. Upon completion of execution, this data is dumped to an output file,
@@ -279,14 +284,14 @@ commonly called \texttt{gmon.out}, which can then be analyzed by the gprof tool
 proper.
 
 Prior to any performance tuning, our profiling data showed that the k-mer
-counting logic was the highest traffic portion of the code, just as we
-predicted. What was a little surprising was how significant of a fraction it
-was, contrasted to I/O operations against storage. Given that our trial data
-sets were about 500 MB and 5 GB, we did not anticipate seeing much in the way
-of cache effects. Indeed, when we controlled for cache effects, we found that
-they did not amount to more than a couple of seconds at most and were thus not
-much larger than the error bars on our total execution times. This left us with
-the realization that I/O was not our only bottleneck.
+counting logic was the highest traffic portion of the code, as we had predicted
+by eye. What was a little surprising was how significant of a fraction it was,
+contrasted to I/O operations against storage. Given that our trial data sets
+were about 500 MB and 5 GB, we did not anticipate seeing much in the way of
+cache effects. Indeed, when we controlled for cache effects, we found that they
+did not amount to more than a couple of seconds at most and were thus not much
+larger than the error bars on our total execution times. This left us with the
+realization that I/O was not our only bottleneck.
 
 Once we began parallelizing the khmer software, we wrote some driver programs,
 which used OpenMP \citep{web:OpenMP}, to test our parallelization of various
@@ -314,12 +319,12 @@ OpenMP is one of the reasons that it was appealing to us. TAU is also entirely
 open source and not tied to any one vendor.
 
 Whereas gprof relies solely upon instrumentation injected into source code at
-compile time (with some additional bits linked in), TAU not only provides this,
-but provides other instrumentation options as well. These options are library
-interposition (primarily used for MPI profiling) and dynamic instrumentation of
-binaries. To support these other options, TAU provides an execution wrapper,
-called \texttt{tau\_exec}. Compile-time instrumentation of source code is
-supported via a wrapper script, called \texttt{tau\_cxx.sh}.
+compile time (with some additional bits linked in), TAU provides this and other
+instrumentation options as well. These options are library interposition
+(primarily used for MPI profiling) and dynamic instrumentation of binaries. To
+support these other options, TAU provides an execution wrapper, called
+\texttt{tau\_exec}. Compile-time instrumentation of source code is supported
+via a wrapper script, called \texttt{tau\_cxx.sh}.
 
 TAU does not fully support all of its profiling facilities directly out of the
 box. To get tight OpenMP integration, for example, TAU needs to be configured
@@ -341,7 +346,7 @@ be less intrusive than automatic instrumentation, since you directly control
 what gets observed. To this end, we created an extensible framework to
 internally measure things such as throughputs, iteration counts, and timings
 around atomic or fine-grained operations within the software itself. As a means
-of keeping us honest, we internally collected some numbers that could be
+of keeping ourselves honest, we internally collected some numbers that could be
 compared with measurements from the external profilers.
 
 For different parts of the code, we needed to have different sets of metrics.
@@ -384,7 +389,7 @@ information to make more educated guesses on how to optimize a program during
 compilation and linking. Although we will provide a little more detail on some
 of these optimizations, we must mention that we have, at this stage in our
 project, avoided them in favor of targeted algorithmic improvements -
-improvements that benefit everyone across many different CPU architectures.
+improvements that provide benefits across many different CPU architectures.
 Also, from the standpoint of build system complexity, aggressive optimizations
 can create portability issues and profile-guided optimizations add to the total
 number of moving parts which may fail. Given that we do not distribute
@@ -457,13 +462,13 @@ sequential and we can tell the operating system to read further ahead than it
 normally would by using \texttt{posix\_fadvise(2)} to provide a hint.
 
 Minimizing buffer-to-buffer copies is a challenge shared between the data pump
-and the parser. In the ideal scenario, we would like to read once from storage
-into our own buffer and then scan our buffer once per genomic read to demarcate
-a sequence with an offset and length within the buffer. However, the logic for
+and the parser. In the ideal scenario, we would read once from storage into our
+own buffer and then scan our buffer once per genomic read to demarcate a
+sequence with an offset and length within the buffer. However, the logic for
 managing the buffer is complex enough and the logic for parsing (accounting for
 our particular nuances) is complex enough that maintaining an intermediary line
 buffer is quite useful for programmer comprehension. To reduce the impact of
-this intermediary buffer, we encourage the compiler to fairly aggressively
+this intermediary buffer, we encourage the compiler to rather aggressively
 inline this portion of the code. We may ultimately eliminate the intermediary
 buffer if performance of this particular region of the code becomes a big
 enough issue, but that may come at the expense of an understandable software
@@ -663,13 +668,13 @@ cores, we presently get about a factor of 1.9 speedup.
 
 \begin{figure}[ht!]
 \centering
-\includegraphics[scale=0.8]{scaling.pdf}
+\includegraphics[scale=0.75]{scaling.pdf}
 \caption{Speedup Factor from 1 to 8 CPU Cores}
 \label{khmerScaling}
 \end{figure}
 
 In parallel computing, one must be mindful of Amdahl's Law \citep{web:Amdahl}
-and the Law of Diminishing Returns. The common forumulation of Amdahl's Law, in
+and the Law of Diminishing Returns. The common formulation of Amdahl's Law, in
 the context of parallel computing, is $S(N) = \frac{1}{(1 - P) + \frac{P}{N}}$,
 where $S$ is the speedup achieved given $N$ CPU cores and, $P$, the proportion
 of the code which is parallelized.  For $\lim_{N\to\infty} S = \frac{1}{(1 -
