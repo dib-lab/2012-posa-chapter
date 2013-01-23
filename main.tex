@@ -124,7 +124,7 @@ activities pertaining to the software, this process is essentially perpetual.
 \label{khmerLayers}
 \end{figure}
 
-The core of the software is written in C++. This core consists a data pump (the
+The core of the software is written in C++. This core consists of a data pump (the
 component which moves data from online storage into physical RAM), parsers for
 genomic reads in several common formats, and several k-mer counters. An
 \textit{application programming interface} (API) is built around the core. This
@@ -277,7 +277,7 @@ to link in some additional profiler-support logic, as appropriate. The
 toolchains, such as those provided by Intel or PGI, also have switches for
 enabling gprof-compatible profiling. (Some compiler vendors in the Unix world
 also supply their own profiling tools and provide switches for supporting
-those, in addition to the gprof "standard".) When the compiled code is
+those, in addition to the gprof ``standard''.) When the compiled code is
 executed, it accumulates data about how much time is spent in particular
 functions. Upon completion of execution, this data is dumped to an output file,
 commonly called \texttt{gmon.out}, which can then be analyzed by the gprof tool
@@ -533,7 +533,7 @@ possibly one addition. Can we do better than this? As it turns out, yes. Note
 that every lowercase letter has an ASCII code which is 32 (hexadecimal 20)
 greater than its uppercase counterpart and that 32 is a power of 2. This means
 that the ASCII uppercase and lowercase characters differ by a single bit only.
-This observation screams "bitmask!"
+This observation screams ``bitmask!''
 
 \begin{verbatim}
 c &= 0xdf; // quicker toupper
@@ -695,7 +695,7 @@ two things will likely grant us an improvement to $l$.
 
 \section{Conclusion}
 
-The khmer software is a moving target. New features are being added to it, and
+The khmer software is a moving target. New features are being added to it regularly, and
 we are working on incorporating it into various software stacks in use by the
 bioinformatics community. Like many pieces of software in academia, it started
 life as an exploratory programming exercise and evolved into research code.
