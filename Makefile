@@ -6,7 +6,9 @@ endif
 
 FIG_PDFS = data_flow.pdf kmers.pdf layers.pdf
 
-all: main.tex $(FIG_PDFS)
+all: main.pdf
+
+main.pdf: main.tex $(FIG_PDFS)
 	pdflatex main.tex
 	bibtex main.aux
 	pdflatex main.tex
