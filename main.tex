@@ -17,20 +17,23 @@
 
 \subsection{Bioinformatics and Big Data}
 
-The field of bioinformatics seeks to understand the mechanisms that sustain and
-perpetuate life on Earth by examining information about the combination and
-function of molecules associated with these activities. The combinations and
-functions of these molecules are examined at different scales, the most common
-being nucleotides and proteins. A chemical and mechanical process, known as
-\textit{sequencing}, extracts nucleotide sequences from the DNA and RNA present
-in terrestrial life. These sequences are recorded using an \textit{alphabet} of
-one letter per nucleotide; this is sometimes referred to as ``digitizing DNA''.
-Various analyses are performed on the sequence data to determine how it is
-structured into larger building blocks and how it relates to other sequence
-data. This serves as the basis for the study of biological evolution and
-development, genetics, and, increasingly, medicine.
+The field of bioinformatics seeks to provide tools and analyses that
+provide understanding of the molecular mechanisms of life on Earth,
+largely by analyzing and correlating genomic and proteomic information.
+As increasingly large amounts of genomic information, including both
+genome sequences and expressed gene sequences, becomes available,
+more efficient, sensitive, and specific analyses become critical.
 
-Data on nucleotide chains comes from the sequencing process in named strings of
+In DNA sequencing, a chemical and mechanical process essentially
+``digitizes'' the information present in DNA and RNA. These sequences
+are recorded using an \textit{alphabet} of one letter per
+nucleotide. Various analyses are performed on this sequence data to
+determine how it is structured into larger building blocks and how it
+relates to other sequence data. This serves as the basis for the study
+of biological evolution and development, genetics, and, increasingly,
+medicine.
+
+Data on nucleotide chains comes from the sequencing process in strings of
 letters known as \textit{reads}. (The use of the term \textit{read} in the
 bioinformatics sense is an unfortunate collision with the use of the term in
 the computer science and software engineering sense. This is especially true as
@@ -44,9 +47,9 @@ that not all genomic reads are of perfect fidelity and may contain a variety of
 errors, such as insertions or deletions of letters or substitutions of the
 wrong letters for nucleotides. While having redundant reads can help in the
 assembly or fitting of the puzzle pieces, it is also a hindrance because of
-this imperfect fidelity in all of the extant sequencing technologies. The
-appearance of erroneous genomic reads scales with the volume of data and this
-complicates assembly of the data.
+this imperfect fidelity in all of the existing sequencing technologies. The
+appearance of erroneous reads scales with the volume of data and this
+complicates assembly of the genomic reads.
 
 % TODO: Reference NIH study with info on sequencing cost and Moore's Law.
 %	(Suggested by Alexis.)
@@ -63,18 +66,32 @@ limiting factor, increasing attention has turned to ways to mitigate the
 problem with software solutions.  In this chapter, we present one such software
 solution and how we tuned and scaled it to handle terabytes of data.
 
+Our research focus has been on efficient {\em pre-processing}, in which
+various filters and binning approaches trim, discard, and bin the
+genomic reads, in order to improve downstream analyses.  This approach
+has the benefit of limiting the changes that need to be made to downstream
+analyses, which generally consume genomic reads directly.
+
+% TODO: can also reference grant proposals at ged.msu.edu/interests.html.
+
+In this chapter, we present our software solution and describe how we
+tuned and scaled it to efficient handle increasingly large amounts of
+data.
+
 \subsection{What is the khmer Software?}
 
-Khmer, in addition to being an ethnic group indigenous to Southeast Asia, is
-the name of our suite of software tools \citep{web:khmer} for pre-processing
-large amounts of genomic sequence data prior to analysis with conventional
-bioinformatics tools. As part of the pre-processing, genetic sequences are
-decomposed into overlapping substrings of a given length, $k$. As chains of
-many molecules are often called \textit{polymers}, chains of a specific number
-of molecules are called \textit{k-mers}, each substring representing one such
-chain. Note that, for each genomic read, the number of k-mers will be the
-number of nucleotides in the sequence minus $k$. This is to say that nearly any
-genomic read will be decomposed into many k-mers.
+``khmer'' is our suite of software tools for pre-processing large
+amounts of genomic sequence data prior to analysis with conventional
+bioinformatics tools \citep{web:khmer} -- no relation to the ethnic
+group indigenous to Southeast Asia.  This name comes by free
+association with the term 'k-mer': as part of the pre-processing,
+genetic sequences are decomposed into overlapping substrings of a
+given length, \textit{k}. As chains of many molecules are often called
+\textit{polymers}, chains of a specific number of molecules are called
+\textit{k-mers}, each substring representing one such chain.  Note
+that, for each genomic read, the number of k-mers will be the number
+of nucleotides in the sequence minus $k$. So, nearly
+every genomic read will be decomposed into many overlapping k-mers.
 
 \begin{figure}[ht!]
 \centering
@@ -89,37 +106,56 @@ Since we want to tell you about how we measured and tuned this piece of open
 source software, we'll skip over much of the theory behind it. Suffice it to
 say that k-mer counting is central to much of its operation. To compactly count
 a large number of k-mers, a data structure known as a \textit{Bloom filter}
-\citep{web:BloomFilter} is used. Armed with k-mer counts, we can then exclude
-highly redundant data from further processing. We call such exclusion or
-filtering \textit{digital normalization} and it is one of the major innovations
-that this software has lent to bioinformatics processing. We can also treat low
+\citep{web:BloomFilter} is used (Figure \ref{bloomFilter}). Armed with k-mer counts, we can then exclude
+highly redundant data from further processing, a process known as
+``digital normalization''. We can also treat low
 abundance sequence data as probable errors and exclude it from further
-processing as well. This process greatly reduces the amount of raw sequence
-data needed for further analysis, while mostly preserving information of
-interest.
+processing, in an approach to error trimming.  These normalization and
+trimming processes greatly reduce
+the amount of raw sequence data needed for further analysis, while mostly
+preserving information of interest.
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[scale=0.6]{bloomFilter.pdf}
+
+\caption{Typical Bloom filters are essentially large, fixed-size hash
+  tables, into which elements are inserted, incremented, or queried
+  using multiple orthogonal hash functions, with no attempt at
+  collision tracking; they are therefore {\em probabilistic} data
+  structures.  Our implementation uses multiple distinct hash tables
+  each with its own hash function.  We typically recommend that
+  khmer's Bloom filters be configured to use as much main memory as is
+  available, as this reduces collisions.}
+
+\label{bloomFilter}
+\end{figure}
 
 For the curious, the khmer sources and documentation can be cloned from GitHub
 at \url{http://github.com/ged-lab/khmer.git}.
 
 \section{Architecture and Performance Considerations}
 
-Like so many pieces of software in the scientific community, khmer mostly
-started as an exploratory programming exercise and evolved into more mature
-research code over time. From its inception, the focus has been on solving
+Khmer started as an exploratory programming exercise and is evolving into
+more mature research code over time.
+From its inception, the focus has been on solving
 particular scientific problems with as much as accuracy or ``correctness'' as
 possible. Over time, as the software has come into greater use around the
 world, issues such as packaging, performance, and scalability have become more
 prominent. These issues were not necessarily neglected in earlier times, but
 they now have a higher profile than they once did. Our discussion will center
-around what we have now done regarding the analysis and solution of performance
-issues and tackling the scalability challenge. One thing to keep in mind is
-that khmer is research code still under development, receiving new features and
-having a growing collection of scripts built up around it.  Changes made to
-improve performance or scalability must be careful not to break existing
-interfaces or to cause the software not to meet its expected level or accuracy
-or correctness. For this reason, we have proceeded along a strategy of careful,
+around how we have analyzed and solved particular performance and scaling
+challenges.
+Beacuse khmer is research code still under development, it routinely
+receiving new features and
+has a growing collection of impermanent scripts built up around it.  We must
+be careful to ensure that changes made to
+improve performance or scalability don't break existing
+interfaces or to cause the software not decrease in accuracy or
+correctness. For this reason, we have proceeded along a strategy that
+combines automated testing with careful,
 incremental optimization and parallelization. In conjunction with other
-activities pertaining to the software, this process is essentially perpetual.
+activities pertaining to the software, we expect this process to be essentially perpetual.
 
 \begin{figure}[ht!]
 \centering
@@ -185,14 +221,22 @@ in memory?
 does not create any unnecessary accessor or decision logic overhead?
 \end{itemize}
 
-Some considerations, regarding parser efficiency, are:
+Parser efficiency is essential, as data enters in a fairly liberal
+string format and must be converted into an internal representation before
+any further processing is done.  Since each individual data record is
+relatively small (100-200 bytes), but there are millions to billions of
+records, we have focused quite a bit of effort on optimizing the
+record parser.
+
+Some considerations regarding parser efficiency are:
 \begin{itemize}
 \item Have we minimized the number of times that the parser is touching the 
 data in memory?
 \item Have we minimized the number of buffer-to-buffer copies while parsing 
 genomic reads from the data stream?
 \item Have we minimized the function call overhead inside the parsing loop?
-\item Is DNA sequence validation being done as efficiently as possible?
+\item The parser must deal with messy data, including ambiguous bases,
+too-short genomic reads, and character case.  Is this DNA sequence validation being done as efficiently as possible?
 \end{itemize}
 
 For iterating over the k-mers in a genomic read and hashing them, we could ask:
@@ -224,34 +268,24 @@ Manually tracing the execution paths of an unfamiliar code is a good idea.
 he joined the project and he did this.) While it is true that profilers (and
 other tools) can generate call graphs, those graphs are only abstract
 summaries. Actually walking the code paths and seeing the function calls is a
-much more immersive and enlightening experience. Debuggers can be used for such
-walks, and are indeed useful in this regard, but they can be tedious to use, as
-often there are many lines that one wishes to skip and alternate execution
-paths one wants to explore. Using an editor with multiple display panes works
-quite well. Four display panes can often simultaneously capture all of the
-information a person needs to know - and is mentally capable of handling - at
-any given point.
+much more immersive and enlightening experience.
 
 The code review showed a number of things, some, but not all, of which were
-later revealed by profiling tools. Some of the things we noticed were:
+later corroborated by profiling tools. Some of the things we noticed were:
 
 \begin{itemize}
-\item Highest traffic expected in k-mer counting logic.
-\item Redundant calls to the \texttt{toupper} function in the highest traffic 
+\item We expected the highest traffic to be in the k-mer counting logic.
+\item Redundant calls to the \texttt{toupper} function were present in the highest traffic 
 regions of the code.
-\item Input of genomic reads performed line-by-line and on demand and without 
+\item Input of genomic reads was performed line-by-line and on demand and without 
 any readahead tuning.
-\item A copy-by-value of the genomic read struct performed for every genomic 
-read parsed and accepted as valid.
+\item A copy-by-value of the genomic read struct performed for every parsed and valid genomic read.
 \end{itemize}
 
-Although the preceding may seem like fairly strong self-criticism, we would
-like to stress that a greater emphasis had been placed on utility and
-correctness up to this point. And we are not talking solely about utility from
-the standpoint of the end user but also from the standpoint of the developers.
-Writing correct code, which maps well to the thought processes around the
-science, is (and was) a good first iteration for scientific software
-development. 
+Although the preceding may seem like fairly strong self-criticism, we
+would like to stress that a greater emphasis had been placed on
+utility and correctness up to this point.  Our goal was to optimize
+existing and mostly correct software, not to redevelop it from scratch.
 
 \subsection{Tools}
 
@@ -266,33 +300,16 @@ time of execution for your code, you need to be mindful of how profiling itself
 affects this. To gauge this, a simple external data collection mechanism, such
 as \texttt{/usr/bin/time}, can be used to compare non-profiling and profiling
 execution times for an identical set of optimization flags and operating
-parameters.
+parameters.  
 
-The size of the input data is not the only factor affecting the execution time
-of the khmer software. Choosing a smaller value of $k$ will result in more
-k-mers per genomic read. This means that the k-mer counting logic will be
-exercised more. Any overhead associated with that logic, such as from profiling
-instrumentation, will thus scale inversely proportional to $k$. We, therefore,
-made measurements with execution at a couple of different k-mer lengths to
-understand the impact of this scaling. (One thing to keep in mind is that $k =
-20$ or thereabouts was found to be ideal for use in the normalization approach
-that the khmer software pioneered. However, for most of our performance tests,
-we used $k = 30$ because of the quicker execution times.) For $k = 20$, we
-found that non-profiled code ran about 19\% faster than profiled code, and, for
-$k = 30$, that non-profiled code ran about 14\% faster than profiled code.
+We gauged the effect of profiling by measuring the difference between
+profiled and non-profiled code across a range of $k$ sizes -- smaller
+$k$ values lead to more $k$-mers per genomic read, increasing
+profiler- specific effects.  For $k = 20$, we found that non-profiled
+code ran about 19\% faster than profiled code, and, for $k = 30$, that
+non-profiled code ran about 14\% faster than profiled code.
 
-The GNU Profiler, gprof \citep{web:gprof}, is one of the tools which we used.
-This profiler relies upon a compiler to instrument the source code and a linker
-to link in some additional profiler-support logic, as appropriate. The
-\texttt{-pg} flag enables profiling when using the GNU toolchain; other
-toolchains, such as those provided by Intel or PGI, also have switches for
-enabling gprof-compatible profiling. (Some compiler vendors in the Unix world
-also supply their own profiling tools and provide switches for supporting
-those, in addition to the gprof ``standard''.) When the compiled code is
-executed, it accumulates data about how much time is spent in particular
-functions. Upon completion of execution, this data is dumped to an output file,
-commonly called \texttt{gmon.out}, which can then be analyzed by the gprof tool
-proper.
+% @Eric -- do you have specific numbers to put in this next paragraph?
 
 Prior to any performance tuning, our profiling data showed that the k-mer
 counting logic was the highest traffic portion of the code, as we had predicted
@@ -307,8 +324,8 @@ cache helps guarantee data cycling in the cache, thereby giving the appearance
 of a continuous stream of non-repeating data.} Indeed, when we controlled for
 cache effects, we found that they did not amount to more than a couple of
 seconds at most and were thus not much larger than the error bars on our total
-execution times.  This left us with the realization that I/O was not our only
-bottleneck.
+execution times.  This left us with the realization that I/O was not our
+primary bottleneck.
 
 Once we began parallelizing the khmer software, we wrote some driver programs,
 which used OpenMP \citep{web:OpenMP}, to test our parallelization of various
@@ -343,18 +360,22 @@ support these other options, TAU provides an execution wrapper, called
 \texttt{tau\_exec}. Compile-time instrumentation of source code is supported
 via a wrapper script, called \texttt{tau\_cxx.sh}.
 
-TAU does not fully support all of its profiling facilities directly out of the
-box. To get tight OpenMP integration, for example, TAU needs to be configured
-and built with support for OPARI. Similarly, to use the performance counters
-exposed by newer Linux kernels, it needs to configured and built with support
-for PAPI. Also, once TAU is built, you will likely want to integrate it into
-your build system for convenience. For example, we setup our build system to
-allow the \texttt{tau\_cxx.sh} wrapper script to be used as the C++ compiler
-when TAU profiling is desired. If you attempt to build and use TAU, you will
-definitely want to read the documentation. While much more powerful than gprof,
-it is not nearly as facile or intuitive.
+TAU needs to be configured to support various profiling activitites.
+To get tight OpenMP integration, for example, TAU needs to be
+configured and built with support for OPARI. Similarly, to use the
+performance counters exposed by newer Linux kernels, it needs to be
+configured and built with support for PAPI. Also, once TAU is built,
+you will likely want to integrate it into your build system for
+convenience. For example, we setup our build system to allow the
+\texttt{tau\_cxx.sh} wrapper script to be used as the C++ compiler
+when TAU profiling is desired. If you attempt to build and use TAU,
+you will definitely want to read the documentation. While much more
+powerful than gprof, it is not nearly as facile or intuitive.
 
 \subsection{Manual Instrumentation}
+
+% @Eric -- i wasn't sure of how to address the set of comments that
+% Colin made here. --ctb
 
 Examining the performance of a piece of software with independent, external
 profilers is all well and good, but sometimes it is more convenient to get the
@@ -388,12 +409,16 @@ compilation directives so that a build can specify to exclude it.
 
 Making software work more efficiently is quite a gratifying experience,
 especially in the face of trillions of bytes passing through it. Our narrative
-will now wander through the various measures we took to improve efficiency. We
+will now turn to the various measures we took to improve efficiency. We
 divide these into two parts: optimization of the reading and parsing of input
 data and optimization of the manipulation and writing of the Bloom filter
 contents.
 
 \subsection{General Tuning}
+
+% @Eric see Colin's comments re aggressive optimization.  I think it's
+% fine (it is a standard term, right?) but may need to be explained a bit
+% more.  I'm not sure how to do it.
 
 Before diving into some of the specifics of how we tuned the khmer software, we
 would like to briefly mention some options for general performance tuning.
@@ -495,7 +520,13 @@ design.
 
 Recalling that we are working with sequences composed of an alphabet of four
 letters: A, C, G, and T, you might ask whether these are uppercase or lowercase
-letters. Prior to performance tuning the code was insensitive to case right up
+letters. Since our software operates directly on user-provided data, we cannot
+rely on the data to be consistently upper- or lower-case, since
+both sequencing platforms and other software packages may alter the case.
+While this is easy to fix for individual genomic reads, we need to repeat
+this for each base in millions or billions of read!
+
+Prior to performance tuning the code was insensitive to case right up
 to the points where it validated the DNA string and where it generated the hash
 codes. At these points, it would make redundant calls to the C library's
 \texttt{toupper} function to normalize the sequences to uppercase, using macros
@@ -558,7 +589,8 @@ c &= 0xdf; // quicker toupper
 
 The above has one bitwise operation, no compares, and no branches. Uppercase
 letters pass through unmolested; lowercase letters become uppercase. Perfect,
-just we wanted. For our trouble, we gained about a 13\% speedup.
+just we wanted. For our trouble, we gained about a 13\% speedup in the
+runtime of the entire process (!)
 
 Our Bloom filter's hash tables are... ``expansive''. To increment the counts
 for the hash code of a particular k-mer means hitting almost $N$ different
@@ -587,7 +619,9 @@ the effectiveness of this kind of work.
 With the proliferation of multi-core architectures in today's world, it is
 tempting to try taking advantage of them. However, unlike many other problem
 domains, such as computational fluid dynamics or molecular dynamics, our Big
-Data problem is essentially I/O-bound. Beyond a certain point, throwing
+Data problem relies on high throughput processing of data -- it
+must become essentially I/O-bound beyond a certain point of parallelization.
+Beyond this point, throwing
 additional threads at it does not help as the bandwidth to the storage media is
 saturated and the threads simply end up with increased blocking or I/O wait
 times. That said, utilizing some threads can be useful, particularly if the
@@ -646,7 +680,7 @@ administered via a state object, maintained on a per-thread basis.
 
 \subsection{Bloom Filter Operations}
 
-The Bloom filter hash tables cannot be split into separate copies among
+The Bloom filter hash tables consume the majority of main memory (see Figure 1) and therefore cannot usefully be split into separate copies among
 threads. Rather, a single set of tables must be shared by all of the threads.
 This implies that there will be contention among the threads for these
 resources. Memory barriers \citep{web:membar} or some form of locking are
