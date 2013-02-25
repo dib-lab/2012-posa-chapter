@@ -48,8 +48,8 @@ errors, such as insertions or deletions of letters or substitutions of the
 wrong letters for nucleotides. While having redundant reads can help in the
 assembly or fitting of the puzzle pieces, it is also a hindrance because of
 this imperfect fidelity in all of the existing sequencing technologies. The
-appearance of erroneous reads scales with the volume of data and this
-complicates assembly of the genomic reads.
+appearance of erroneous genomic reads scales with the volume of data and this
+complicates assembly of the data.
 
 % TODO: Reference NIH study with info on sequencing cost and Moore's Law.
 %	(Suggested by Alexis.)
@@ -284,7 +284,7 @@ any readahead tuning.
 
 Although the preceding may seem like fairly strong self-criticism, we
 would like to stress that a greater emphasis had been placed on
-utility and correctness up to this point.  Our goal was to optimize
+utility and correctness of khmer up to this point.  Our goal was to optimize
 existing and mostly correct software, not to redevelop it from scratch.
 
 \subsection{Tools}
@@ -360,7 +360,7 @@ support these other options, TAU provides an execution wrapper, called
 \texttt{tau\_exec}. Compile-time instrumentation of source code is supported
 via a wrapper script, called \texttt{tau\_cxx.sh}.
 
-TAU needs to be configured to support various profiling activitites.
+TAU needs to be configured to support various profiling activities.
 To get tight OpenMP integration, for example, TAU needs to be
 configured and built with support for OPARI. Similarly, to use the
 performance counters exposed by newer Linux kernels, it needs to be
