@@ -119,20 +119,39 @@ preserving information of interest.
 \centering
 \includegraphics[scale=0.6]{bloomFilter.pdf}
 
-\caption{Typical Bloom filters are essentially large, fixed-size hash
-  tables, into which elements are inserted, incremented, or queried
-  using multiple orthogonal hash functions, with no attempt at
-  collision tracking; they are therefore {\em probabilistic} data
-  structures.  Our implementation uses multiple distinct hash tables
-  each with its own hash function.  We typically recommend that
-  khmer's Bloom filters be configured to use as much main memory as is
-  available, as this reduces collisions.}
+\caption{A Bloom filter is essentially a large, fixed-size hash
+  table, into which elements are inserted or queried using multiple
+  orthogonal hash functions, with no attempt at collision tracking;
+  they are therefore {\em probabilistic} data structures.  Our
+  implementation uses multiple distinct hash tables each with its own
+  hash function, but the properties are identical.  We typically
+  recommend that khmer's Bloom filters be configured to use as much
+  main memory as is available, as this reduces collisions maximally.}
 
 \label{bloomFilter}
 \end{figure}
 
-For the curious, the khmer sources and documentation can be cloned from GitHub
-at \url{http://github.com/ged-lab/khmer.git}.
+khmer is designed to operate on large data sets of millions to billions of
+genomic reads, containing tends of billions of unique k-mers.  Some of our
+existing data sets require up to a terabyte of system memory simply to
+hold the k-mer counts in memory, but this is not due to inefficient
+programming: in (@cite PNAS) we show that khmer is considerably more
+memory efficient than any exact set membership scheme for a wide regime
+of interesting k-mer problems.  It is unlikely that significant improvements
+in memory usage can be obtained easily.
+
+Our goal, then, is simple: in the face of these large data sets, we
+would like to optimize khmer for processing time, including most especially
+the time required to load data from disk and count k-mers.
+
+For the curious, the khmer sources and documentation can be cloned
+from GitHub at \url{http://github.com/ged-lab/khmer.git}.  Khmer has
+been available for about four years, but only with the posting of
+several preprint papers have others started to use it; we estimate the
+user population at around 100 groups based on e-mail interactions in
+2012, although it seems to be growing rapidly as we publish more and
+show that a large class of assembly problems becomes more readily
+tractable with khmer (@citations).
 
 \section{Architecture and Performance Considerations}
 
@@ -760,10 +779,21 @@ and scalability issues led to the redesign of the data pump and parser
 components. Going forward, these components should be able to benefit not only
 from scalability but improved maintainability and extensibility.
 
-We look forward to continuing the development of this software and hope to have
-an impact on the Big Data problem facing molecular biologists and
-bioinformaticians. We hope that you enjoyed reading about some high
-performance, open source software being employed in the sciences.
+Looking forward, once we have addressed the basic performance issues,
+we are primarily interested in growing the programmer's API, providing
+well tested use cases and documentation, and providing
+well-characterized components for integration into larger pipelines.
+More broadly, we would like to take advantage of theoretical advances
+in low-memory data structures to simplify certain use cases, and we
+are also interested in investigating distributed algorithms for some
+of the more intractable data set challenges facing us in the near
+future.
+
+We look forward to continuing the development of this software and
+hope to have an impact on the Big Data problem facing molecular
+biologists and bioinformaticians. We hope that you enjoyed reading
+about some high performance, open source software being employed in
+the sciences.
 
 \section{Acknowledgements}
 
