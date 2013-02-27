@@ -3,7 +3,7 @@
 
 \title{khmer: Working with Big Data in Bioinformatics}
 \author{Eric McDonald and C. Titus Brown}
-\date{January 2013}
+\date{February 2013}
 
 \usepackage{natbib}
 \usepackage{url}
@@ -117,7 +117,7 @@ preserving information of interest.
 
 \begin{figure}[ht!]
 \centering
-\includegraphics[scale=0.6]{bloomFilter.pdf}
+\includegraphics[scale=0.5]{bloomFilter.pdf}
 
 \caption{A Bloom filter is essentially a large, fixed-size hash
   table, into which elements are inserted or queried using multiple
@@ -245,7 +245,9 @@ string format and must be converted into an internal representation before
 any further processing is done.  Since each individual data record is
 relatively small (100-200 bytes), but there are millions to billions of
 records, we have focused quite a bit of effort on optimizing the
-record parser.
+record parser. The parser, at its core, is a loop which breaks up the 
+data stream into genomic reads and stores them in records, performing some 
+initial validation along the way.
 
 Some considerations regarding parser efficiency are:
 \begin{itemize}
@@ -253,7 +255,7 @@ Some considerations regarding parser efficiency are:
 data in memory?
 \item Have we minimized the number of buffer-to-buffer copies while parsing 
 genomic reads from the data stream?
-\item Have we minimized the function call overhead inside the parsing loop?
+\item Have we minimized function call overhead inside the parsing loop?
 \item The parser must deal with messy data, including ambiguous bases,
 too-short genomic reads, and character case.  Is this DNA sequence validation being done as efficiently as possible?
 \end{itemize}
@@ -287,7 +289,15 @@ Manually tracing the execution paths of an unfamiliar code is a good idea.
 he joined the project and he did this.) While it is true that profilers (and
 other tools) can generate call graphs, those graphs are only abstract
 summaries. Actually walking the code paths and seeing the function calls is a
-much more immersive and enlightening experience.
+much more immersive and enlightening experience. Debuggers can be used for such 
+walks, but do not readily lend themselves to the exploration of code paths less 
+travelled. Also, moving through an execution path step-by-step can be quite 
+tedious. Breakpoints can be used for testing whether certain points in the 
+code are hit during normal execution, but setting them requires some 
+\textit{a priori} knowledge of the code. As an alternative, the use of an 
+editor with multiple panes works quite well. Four display panes can often 
+simultaneously capture all of the information a person needs to know - and is 
+mentally capable of handling - at any given point.
 
 The code review showed a number of things, some, but not all, of which were
 later corroborated by profiling tools. Some of the things we noticed were:
@@ -344,7 +354,7 @@ of a continuous stream of non-repeating data.} Indeed, when we controlled for
 cache effects, we found that they did not amount to more than a couple of
 seconds at most and were thus not much larger than the error bars on our total
 execution times.  This left us with the realization that I/O was not our
-primary bottleneck.
+primary bottleneck at that juncture in the code optimization process.
 
 Once we began parallelizing the khmer software, we wrote some driver programs,
 which used OpenMP \citep{web:OpenMP}, to test our parallelization of various
@@ -379,7 +389,7 @@ support these other options, TAU provides an execution wrapper, called
 \texttt{tau\_exec}. Compile-time instrumentation of source code is supported
 via a wrapper script, called \texttt{tau\_cxx.sh}.
 
-TAU needs to be configured to support various profiling activities.
+TAU needs additional configuration to support some profiling activities.
 To get tight OpenMP integration, for example, TAU needs to be
 configured and built with support for OPARI. Similarly, to use the
 performance counters exposed by newer Linux kernels, it needs to be
@@ -393,18 +403,19 @@ powerful than gprof, it is not nearly as facile or intuitive.
 
 \subsection{Manual Instrumentation}
 
-% @Eric -- i wasn't sure of how to address the set of comments that
-% Colin made here. --ctb
-
 Examining the performance of a piece of software with independent, external
-profilers is all well and good, but sometimes it is more convenient to get the
-software to tell you certain numbers itself. Also, manual instrumentation can
-be less intrusive than automatic instrumentation, since you directly control
-what gets observed. To this end, we created an extensible framework to
-internally measure things such as throughputs, iteration counts, and timings
-around atomic or fine-grained operations within the software itself. As a means
-of keeping ourselves honest, we internally collected some numbers that could be
-compared with measurements from the external profilers.
+profilers is a quick and convenient way to learn something about the execution
+times of various parts of software at a first glance. However, profilers are
+generally not so good at reporting how much time code spends in a particular
+spinlock within a particular function or what the input rate of your data is.
+To augment or complement external profiling capabilities, manual
+instrumentation may needed. Also, manual instrumentation can be less intrusive
+than automatic instrumentation, since you directly control what gets observed.
+To this end, we created an extensible framework to internally measure things
+such as throughputs, iteration counts, and timings around atomic or
+fine-grained operations within the software itself. As a means of keeping
+ourselves honest, we internally collected some numbers that could be compared
+with measurements from the external profilers.
 
 For different parts of the code, we needed to have different sets of metrics.
 However, all of the different sets of metrics have certain things in common.
@@ -435,46 +446,42 @@ contents.
 
 \subsection{General Tuning}
 
-% @Eric see Colin's comments re aggressive optimization.  I think it's
-% fine (it is a standard term, right?) but may need to be explained a bit
-% more.  I'm not sure how to do it.
-
 Before diving into some of the specifics of how we tuned the khmer software, we
 would like to briefly mention some options for general performance tuning.
-These options can be broadly categorized as aggressive optimizations and
-\textit{profile-guided optimizations} (PGO) \citep{web:PGO}. Aggressive
-optimizations are optimizations which may introduce bugs into the compiled code
-because of the assumptions which underly them; they may also be specific to a
+Production code is often built with a set of safe and simple optimizations
+enabled; these optimizations can be generally proven not to change the
+semantics of the code (i.e., introduce bugs) and only require a single
+compilation pass. Compilers do provide additional optimization options,
+however. These additional options can be broadly categorized as
+\textit{aggressive optimizations}, which is a fairly standard term in compiler
+literature, and \textit{profile-guided optimizations} (PGO) \citep{web:PGO}.
+(The two categories are not mutually-exclusive, strictly speaking, but
+typically involve different approaches.)
+
+Aggressive optimizations may be unsafe (i.e., introduce bugs) in some cases or
+actually decrease performance in other cases. Aggressive optimizations may be
+unsafe for a variety of reasons, including sloppiness in floating-point
+accuracy or assumptions about different operands being associated with
+different memory addresses. Aggressive optimizations may also be specific to a
 particular CPU family. Profile-guided optimizations rely on profiling
 information to make more educated guesses on how to optimize a program during
-compilation and linking. Although we will provide a little more detail on some
-of these optimizations, we must mention that we have, at this stage in our
-project, avoided them in favor of targeted algorithmic improvements -
-improvements that provide benefits across many different CPU architectures.
-Also, from the standpoint of build system complexity, aggressive optimizations
-can create portability issues and profile-guided optimizations add to the total
-number of moving parts which may fail. Given that we do not distribute
-pre-compiled executables for various architectures and that our target audience
-is usually not too savvy about the intricacies of software development or build
-systems, it is likely that we will continue avoiding these optimizations until
-we feel that the benefits outweigh the drawbacks.
+compilation and linking.  One frequently-seen profile-guided optimization is
+the optimization of locality - attempting to place highly-correlated functions
+as neighbors inside the text segment of the executable image so that they will
+be loaded into the same memory pages together at runtime.
 
-Optimization of locality arranges frequently-associated functions near one
-another in the text segment of an executable to increase the chance that they
-will be fetched into cache together on the same memory pages. This reduces
-cache misses and hence additional fetches. Although the collection of timing
-data is gprof's bread-and-butter, it also records a call graph. Using both the
-call graph and the timing data, it can deduce which functions are frequently
-associated with one another and provide hints for manual profile-guided
-optimization of locality. (These hints are provided by the \texttt{-R} and
-\texttt{-r} switches respectively.) However, manually performing PGO can be
-tedious and misses out on what a compiler and linker with PGO support can do
-automatically. The GNU C and C++ compilers support automatic PGO, which
-includes not only localization but also branch reordering and function inlining
-based on empirical data, among other things. (The initial compilation must be
-performed with the \texttt{-fprofile-generate} switch. After execution of the
-instrumented code, recompilation must be done with the \texttt{-fprofile-use}
-switch, feeding in the profiling data that the executable produced.)
+At this stage in our project, we have avoided both categories of additional
+optimizations in favor of targeted algorithmic improvements - improvements that
+provide benefits across many different CPU architectures.  Also, from the
+standpoint of build system complexity, aggressive optimizations can create
+portability issues and profile-guided optimizations add to the total number of
+moving parts which may fail. Given that we do not distribute pre-compiled
+executables for various architectures and that our target audience is usually
+not too savvy about the intricacies of software development or build systems,
+it is likely that we will continue avoiding these optimizations until we feel
+that the benefits outweigh the drawbacks. In light of these considerations, our
+main focus has been on improving the efficiency of our algorithms rather than
+other kinds of tuning.
 
 \subsection{Data Pump and Parser Operations}
 
