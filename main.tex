@@ -96,7 +96,7 @@ every genomic read will be decomposed into many overlapping k-mers.
 \begin{figure}[ht!]
 \centering
 \includegraphics[scale=0.5]{kmers.pdf}
-\caption{Decomposition of Genomic Sequence into 4-mers}
+\caption{Decomposition of Genomic Sequence into 4-mers.  In khmer, the forward sequence and reverse complement of each k-mer are hashed to the same value, in recognition that DNA is double-stranded.  See Future Directions.}
 \label{kmers}
 \end{figure}
 
@@ -135,7 +135,7 @@ khmer is designed to operate on large data sets of millions to billions of
 genomic reads, containing tends of billions of unique k-mers.  Some of our
 existing data sets require up to a terabyte of system memory simply to
 hold the k-mer counts in memory, but this is not due to inefficient
-programming: in (@cite PNAS) we show that khmer is considerably more
+programming: in \cite{kmer-percolation} we show that khmer is considerably more
 memory efficient than any exact set membership scheme for a wide regime
 of interesting k-mer problems.  It is unlikely that significant improvements
 in memory usage can be obtained easily.
@@ -149,9 +149,9 @@ from GitHub at \url{http://github.com/ged-lab/khmer.git}.  Khmer has
 been available for about four years, but only with the posting of
 several preprint papers have others started to use it; we estimate the
 user population at around 100 groups based on e-mail interactions in
-2012, although it seems to be growing rapidly as we publish more and
-show that a large class of assembly problems becomes more readily
-tractable with khmer (@citations).
+2012, although it seems to be growing rapidly as it becomes clear
+that a large class of assembly problems is more readily
+tractable with khmer \cite{diginorm}.
 
 \section{Architecture and Performance Considerations}
 
@@ -169,7 +169,7 @@ Beacuse khmer is research code still under development, it routinely
 receiving new features and
 has a growing collection of impermanent scripts built up around it.  We must
 be careful to ensure that changes made to
-improve performance or scalability don't break existing
+improve performance or scalability do not break existing
 interfaces or to cause the software not decrease in accuracy or
 correctness. For this reason, we have proceeded along a strategy that
 combines automated testing with careful,
@@ -786,6 +786,8 @@ and scalability issues led to the redesign of the data pump and parser
 components. Going forward, these components should be able to benefit not only
 from scalability but improved maintainability and extensibility.
 
+\section{Future Directions}
+
 Looking forward, once we have addressed the basic performance issues,
 we are primarily interested in growing the programmer's API, providing
 well tested use cases and documentation, and providing well-characterized
@@ -794,6 +796,11 @@ to take advantage of advances in the theory of low-memory data structures to
 simplify certain use cases, and we are also interested in investigating
 distributed algorithms for some of the more intractable data set challenges
 facing us in the near future.
+
+Some additional concerns facing khmer development include an expansion
+of the hashing options to allow the use of different hash functions
+for single-stranded DNA and the addition of a rolling hash function to
+permit k $>$ 32.
 
 We look forward to continuing the development of this software and
 hope to have an impact on the Big Data problem facing molecular
