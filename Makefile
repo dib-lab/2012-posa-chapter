@@ -25,6 +25,15 @@ diff:
 clean:
 	-rm -f *.aux *.log *.bbl *.blg *.dvi *.pdf 
 
+arxiv.tar.gz: main.pdf
+	rm -fr ./arxiv/
+	mkdir arxiv
+	cp main.tex natbib.sty ./arxiv/
+	cp bloomFilter.pdf data_flow.pdf kmers.pdf layers.pdf scaling.pdf ./arxiv/
+	cp main.bbl ./arxiv/
+	@rm -f arxiv.tar.gz
+	cd arxiv && tar czf ../arxiv.tar.gz *
+
 %.pdf: %.eps
 	$(CONVERT) $< $@
 
