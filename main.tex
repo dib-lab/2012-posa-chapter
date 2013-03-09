@@ -5,7 +5,6 @@
 \author{Eric McDonald and C. Titus Brown}
 \date{February 2013}
 
-\usepackage{natbib}
 \usepackage{url}
 \usepackage{graphicx}
 
@@ -60,7 +59,7 @@ conventional methods for analyzing such data. (Much of the state-of-the-art in
 sequencing technology produces vast quantities of genomic reads, typically tens
 of millions to billions, each having a sequence of 50 to 100 nucleotides.) This
 trend is expected to continue and is part of what is known as the \textit{Big
-Data} \citep{web:bigdata} problem in the high performance computing (HPC),
+Data} \cite{web:bigdata} problem in the high performance computing (HPC),
 analytics, and information science communities.  With hardware becoming a
 limiting factor, increasing attention has turned to ways to mitigate the
 problem with software solutions.  In this chapter, we present one such software
@@ -82,7 +81,7 @@ data.
 
 ``khmer'' is our suite of software tools for pre-processing large
 amounts of genomic sequence data prior to analysis with conventional
-bioinformatics tools \citep{web:khmer} -- no relation to the ethnic
+bioinformatics tools \cite{web:khmer} -- no relation to the ethnic
 group indigenous to Southeast Asia.  This name comes by free
 association with the term 'k-mer': as part of the pre-processing,
 genetic sequences are decomposed into overlapping substrings of a
@@ -106,7 +105,7 @@ Since we want to tell you about how we measured and tuned this piece of open
 source software, we'll skip over much of the theory behind it. Suffice it to
 say that k-mer counting is central to much of its operation. To compactly count
 a large number of k-mers, a data structure known as a \textit{Bloom filter}
-\citep{web:BloomFilter} is used (Figure \ref{bloomFilter}). Armed with k-mer counts, we can then exclude
+\cite{web:BloomFilter} is used (Figure \ref{bloomFilter}). Armed with k-mer counts, we can then exclude
 highly redundant data from further processing, a process known as
 ``digital normalization''. We can also treat low
 abundance sequence data as probable errors and exclude it from further
@@ -357,7 +356,7 @@ execution times.  This left us with the realization that I/O was not our
 primary bottleneck at that juncture in the code optimization process.
 
 Once we began parallelizing the khmer software, we wrote some driver programs,
-which used OpenMP \citep{web:OpenMP}, to test our parallelization of various
+which used OpenMP \cite{web:OpenMP}, to test our parallelization of various
 components. While gprof is good at profiling single-threaded execution, it
 lacks the ability to trace per-thread execution when multiple threads are in
 use and it does not understand parallelization machinery, such as OpenMP. For
@@ -370,7 +369,7 @@ associated.
 
 As gprof could not readily give us the per-thread reporting and the OpenMP
 support that we desired, we turned to another tool. This was the Tuning and
-Analysis Utilities (TAU) \citep{web:TAU} from a collaboration led by the
+Analysis Utilities (TAU) \cite{web:TAU} from a collaboration led by the
 University of Oregon. There are a number of parallel profiling tools out there
 - many of them focus on programs using MPI (Message Passing Interface)
 libraries, which are popular for some kinds of scientific computing tasks. TAU
@@ -454,7 +453,7 @@ semantics of the code (i.e., introduce bugs) and only require a single
 compilation pass. Compilers do provide additional optimization options,
 however. These additional options can be broadly categorized as
 \textit{aggressive optimizations}, which is a fairly standard term in compiler
-literature, and \textit{profile-guided optimizations} (PGO) \citep{web:PGO}.
+literature, and \textit{profile-guided optimizations} (PGO) \cite{web:PGO}.
 (The two categories are not mutually-exclusive, strictly speaking, but
 typically involve different approaches.)
 
@@ -637,7 +636,7 @@ Initial work on this front looks quite promising and, hopefully, by the time
 you are reading this, we will have fully integrated this modification into our
 code. Although we did not mention it earlier in our discussion of measurement
 and profiling, \texttt{cachegrind}, a program which is part of the open-source
-Valgrind \citep{web:Valgrind} distribution, is a very useful tool for gauging
+Valgrind \cite{web:Valgrind} distribution, is a very useful tool for gauging
 the effectiveness of this kind of work.
 
 \section{Parallelization}
@@ -709,10 +708,10 @@ administered via a state object, maintained on a per-thread basis.
 The Bloom filter hash tables consume the majority of main memory (see Figure 1) and therefore cannot usefully be split into separate copies among
 threads. Rather, a single set of tables must be shared by all of the threads.
 This implies that there will be contention among the threads for these
-resources. Memory barriers \citep{web:membar} or some form of locking are
+resources. Memory barriers \cite{web:membar} or some form of locking are
 needed to prevent two or more threads from attempting to access the same memory
 location at the same time. We use atomic addition operations to increment the
-counters in the hash tables. These atomic operations \citep{web:atomics} are
+counters in the hash tables. These atomic operations \cite{web:atomics} are
 supported on a number of platforms by several compiler suites, the GNU
 compilers among those, and are not beholden to any particular threading scheme
 or library. They establish memory barriers around the operands which they are
@@ -728,7 +727,7 @@ larger data sets, the ratio becomes more pronounced. That said, we are
 ultimately interested in improving performance here too. One possibility is to
 amortize the cost of the write-out over the duration of the k-mer counting
 phase of operation. The URL-shortener site, bit.ly, has a counting Bloom filter
-implementation, called \texttt{dablooms} \citep{web:dablooms}, which achieves
+implementation, called \texttt{dablooms} \cite{web:dablooms}, which achieves
 this by memory-mapping its output file to the hash table memory. Adopting their
 idea, in conjunction with batch updates of the hash tables, would effectively
 give us asynchronous output in bursts over a process' lifetime and chop off the
@@ -750,7 +749,7 @@ cores, we presently get about a factor of 1.9 speedup.
 \label{khmerScaling}
 \end{figure}
 
-In parallel computing, one must be mindful of Amdahl's Law \citep{web:Amdahl}
+In parallel computing, one must be mindful of Amdahl's Law \cite{web:Amdahl}
 and the Law of Diminishing Returns. The common formulation of Amdahl's Law, in
 the context of parallel computing, is $S(N) = \frac{1}{(1 - P) + \frac{P}{N}}$,
 where $S$ is the speedup achieved given $N$ CPU cores and, $P$, the proportion
