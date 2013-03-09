@@ -28,7 +28,7 @@ clean:
 arxiv.tar.gz: main.pdf
 	rm -fr ./arxiv/
 	mkdir arxiv
-	cp main.tex natbib.sty ./arxiv/
+	cp main.tex ./arxiv/
 	cp bloomFilter.pdf data_flow.pdf kmers.pdf layers.pdf scaling.pdf ./arxiv/
 	cp main.bbl ./arxiv/
 	@rm -f arxiv.tar.gz
