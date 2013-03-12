@@ -3,7 +3,7 @@
 
 \title{khmer: Working with Big Data in Bioinformatics}
 \author{Eric McDonald and C. Titus Brown}
-\date{February 2013}
+\date{March 2013}
 
 \usepackage{natbib}
 \usepackage{url}
@@ -333,28 +333,28 @@ parameters.
 
 We gauged the effect of profiling by measuring the difference between
 profiled and non-profiled code across a range of $k$ sizes -- smaller
-$k$ values lead to more $k$-mers per genomic read, increasing
-profiler- specific effects.  For $k = 20$, we found that non-profiled
-code ran about 19\% faster than profiled code, and, for $k = 30$, that
-non-profiled code ran about 14\% faster than profiled code.
-
-% @Eric -- do you have specific numbers to put in this next paragraph?
+$k$ values lead to more $k$-mers per genomic read, increasing profiler-specific
+effects.  For $k = 20$, we found that non-profiled code ran about 19\% faster
+than profiled code, and, for $k = 30$, that non-profiled code ran about 14\%
+faster than profiled code.
 
 Prior to any performance tuning, our profiling data showed that the k-mer
 counting logic was the highest traffic portion of the code, as we had predicted
-by eye. What was a little surprising was how significant of a fraction it was,
-contrasted to I/O operations against storage. Given that our trial data sets
-were about 500 MB and 5 GB, we did not anticipate seeing much in the way of
-cache effects.\footnote{If the size of a data cache is larger than the data
-being used in I/O performance benchmarks, then retrieval directly from the
-cache rather than the original data source may skew the mesurements from
-successive runs of the benchmarks. Having a data source larger than the data
-cache helps guarantee data cycling in the cache, thereby giving the appearance
-of a continuous stream of non-repeating data.} Indeed, when we controlled for
-cache effects, we found that they did not amount to more than a couple of
-seconds at most and were thus not much larger than the error bars on our total
-execution times.  This left us with the realization that I/O was not our
-primary bottleneck at that juncture in the code optimization process.
+by eye. What was a little surprising was how significant of a fraction it was
+(around 83\% of the total time), contrasted to I/O operations against storage
+(around 5\% of the total time, for one particular medium and low bandwidth
+contention).  Given that our trial data sets were about 500 MB and 5 GB, we did
+not anticipate seeing much in the way of cache effects.\footnote{If the size of
+a data cache is larger than the data being used in I/O performance benchmarks,
+then retrieval directly from the cache rather than the original data source may
+skew the mesurements from successive runs of the benchmarks.  Having a data
+source larger than the data cache helps guarantee data cycling in the cache,
+thereby giving the appearance of a continuous stream of non-repeating data.}
+Indeed, when we controlled for cache effects, we found that they did not amount
+to more than a couple of seconds at most and were thus not much larger than the
+error bars on our total execution times.  This left us with the realization
+that I/O was not our primary bottleneck at that juncture in the code
+optimization process.
 
 Once we began parallelizing the khmer software, we wrote some driver programs,
 which used OpenMP \citep{web:OpenMP}, to test our parallelization of various
